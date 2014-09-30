@@ -19,29 +19,32 @@
 
 package net.rcarz.jiraclient.greenhopper;
 
-import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import net.sf.json.JSONObject;
 
 import org.joda.time.DateTime;
+
+import static net.rcarz.jiraclient.greenhopper.GreenHopperField.getDateTime;
+import static net.rcarz.jiraclient.greenhopper.GreenHopperField.getIntegerArray;
 
 /**
  * Represents a GreenHopper sprint.
  */
 public class Sprint extends GreenHopperResource {
 
+    private enum STATE {
+        ACTIVE, CLOSED
+    }
+
     private String name = null;
     private boolean closed = false;
     private DateTime startDate = null;
     private DateTime endDate = null;
     private DateTime completeDate = null;
-    private List<Integer> issuesIds = null;
-    private List<SprintIssue> issues = null;
 
     /**
      * Creates a sprint from a JSON payload.
@@ -57,15 +60,18 @@ public class Sprint extends GreenHopperResource {
     }
 
     private void deserialise(JSONObject json) {
-        Map map = json;
+        id = json.getInt("id");
+        name = json.getString("name");
 
-        id = Field.getInteger(map.get("id"));
-        name = Field.getString(map.get("name"));
-        closed = Field.getBoolean(map.get("closed"));
-        startDate = GreenHopperField.getDateTime(map.get("startDate"));
-        endDate = GreenHopperField.getDateTime(map.get("endDate"));
-        completeDate = GreenHopperField.getDateTime(map.get("completeDate"));
-        issuesIds = GreenHopperField.getIntegerArray(map.get("issuesIds"));
+        closed = checkClosed(json.optString("state", STATE.CLOSED.name()));
+        startDate = getDateTime(json.optString("startDate", null));
+        endDate = getDateTime(json.optString("endDate", null));
+        completeDate = getDateTime(json.optString("completeDate", null));
+    }
+
+    private boolean checkClosed(String state) {
+        STATE stateEnum = STATE.valueOf(state);
+        return stateEnum != null && stateEnum == STATE.CLOSED;
     }
 
     @Override
@@ -91,17 +97,6 @@ public class Sprint extends GreenHopperResource {
 
     public DateTime getCompleteDate() {
         return completeDate;
-    }
-
-    public List<SprintIssue> getIssues(){
-        if(issues == null){
-            issues = new ArrayList<SprintIssue>();
-        }
-        return issues;
-    }
-
-    public List<Integer> getIssuesIds() {
-        return issuesIds;
     }
 }
 

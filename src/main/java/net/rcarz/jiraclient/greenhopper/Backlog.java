@@ -130,12 +130,6 @@ public class Backlog {
         //fill in the issues into the single sprints and the backlog issue list respectively
         for(SprintIssue issue : issues){
             boolean addedToSprint = false;
-            for(Sprint sprint : sprints){
-                if(sprint.getIssuesIds().contains(issue.getId())){
-                    sprint.getIssues().add(issue);
-                    addedToSprint = true;
-                }
-            }
             if(!addedToSprint){
                 if(backlogIssues == null){
                     backlogIssues = new ArrayList<SprintIssue>();
@@ -143,7 +137,6 @@ public class Backlog {
                 backlogIssues.add(issue);
             }
         }
-
     }
 
     /**

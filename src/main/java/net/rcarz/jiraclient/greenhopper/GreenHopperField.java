@@ -48,11 +48,11 @@ public final class GreenHopperField {
      *
      * @return the date-time or null
      */
-    public static DateTime getDateTime(Object dt) {
-        if(dt == null || ((String)dt).equals(NO_DATE)){
+    public static DateTime getDateTime(String dt) {
+        if(dt == null || (dt).equals(NO_DATE)){
             return null;
         }
-        return DateTime.parse((String)dt, DateTimeFormat.forPattern(DATE_TIME_FORMAT));
+        return DateTime.parse(dt, DateTimeFormat.forPattern(DATE_TIME_FORMAT));
     }
 
     /**
@@ -110,13 +110,11 @@ public final class GreenHopperField {
      *
      * @return a list of integers
      */
-    public static List<Integer> getIntegerArray(Object ia) {
+    public static List<Integer> getIntegerArray(JSONArray ia) {
         List<Integer> results = new ArrayList<Integer>();
 
-        if (ia instanceof JSONArray) {
-            for (Object v : (JSONArray)ia)
+            for (Object v : ia)
                 results.add((Integer)v);
-        }
 
         return results;
     }

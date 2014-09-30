@@ -86,7 +86,7 @@ public abstract class GreenHopperIssue extends GreenHopperResource {
         statusId = Field.getString(map.get("statusId"));
         statusName = Field.getString(map.get("statusName"));
         statusUrl = Field.getString(map.get("statusUrl"));
-        fixVersions = GreenHopperField.getIntegerArray(map.get("fixVersions"));
+        fixVersions = GreenHopperField.getIntegerArray(json.getJSONArray("fixVersions"));
         projectId = Field.getInteger(map.get("projectId"));
     }
 

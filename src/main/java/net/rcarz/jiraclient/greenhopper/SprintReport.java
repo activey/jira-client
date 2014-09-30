@@ -62,9 +62,9 @@ public class SprintReport {
     }
 
     private void deserialise(JSONObject json) {
-        Map map = json;
+        sprint = GreenHopperField.getResource(Sprint.class, json.get("sprint"), restclient);
 
-        sprint = GreenHopperField.getResource(Sprint.class, map.get("sprint"), restclient);
+        Map map = json.getJSONObject("contents");
         completedIssues = GreenHopperField.getResourceArray(
             SprintIssue.class,
             map.get("completedIssues"),
@@ -127,7 +127,7 @@ public class SprintReport {
         if (!jo.containsKey("contents") || !(jo.get("contents") instanceof JSONObject))
             throw new JiraException("Sprint report content is malformed");
 
-        return new SprintReport(restclient, (JSONObject)jo.get("contents"));
+        return new SprintReport(restclient, jo);
     }
 
     public Sprint getSprint() {
