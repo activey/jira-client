@@ -22,6 +22,7 @@ package net.rcarz.jiraclient;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import net.sf.json.JSON;
 import net.sf.json.JSONArray;
@@ -42,8 +43,8 @@ public class JiraClient {
      *
      * @param uri Base URI of the JIRA server
      */
-    public JiraClient(String uri) {
-        this(uri, null);
+    public JiraClient(String uri, Locale serverLocale) {
+        this(uri, serverLocale, null);
     }
 
     /**
@@ -52,10 +53,10 @@ public class JiraClient {
      * @param uri Base URI of the JIRA server
      * @param creds Credentials to authenticate with
      */
-    public JiraClient(String uri, ICredentials creds) {
+    public JiraClient(String uri, Locale serverLocale, ICredentials creds) {
         DefaultHttpClient httpclient = new DefaultHttpClient();
 
-        restclient = new RestClient(httpclient, creds, URI.create(uri));
+        restclient = new RestClient(httpclient, serverLocale, creds, URI.create(uri));
 
         if (creds != null)
             username = creds.getLogonName();

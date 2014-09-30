@@ -23,12 +23,15 @@ import net.rcarz.jiraclient.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
+
+import static java.util.Locale.ENGLISH;
 
 /**
  * Utility functions for translating between JSON and fields.
@@ -48,11 +51,11 @@ public final class GreenHopperField {
      *
      * @return the date-time or null
      */
-    public static DateTime getDateTime(String dt) {
+    public static DateTime getDateTime(String dt, Locale locale) {
         if(dt == null || (dt).equals(NO_DATE)){
             return null;
         }
-        return DateTime.parse(dt, DateTimeFormat.forPattern(DATE_TIME_FORMAT));
+        return DateTime.parse(dt, DateTimeFormat.forPattern(DATE_TIME_FORMAT).withLocale(locale));
     }
 
     /**

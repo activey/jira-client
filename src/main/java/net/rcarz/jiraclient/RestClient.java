@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Locale;
 import java.util.Map;
 
 import net.sf.json.JSON;
@@ -55,7 +56,10 @@ import org.apache.http.entity.mime.content.FileBody;
  */
 public class RestClient {
 
+    public static final String CONTENT_TYPE_JSON = "application/json";
+    public static final String HEADER_CONTENT_TYPE = "Content-Type";
     private HttpClient httpClient = null;
+    private Locale serverLocale;
     private ICredentials creds = null;
     private URI uri = null;
 
@@ -66,7 +70,17 @@ public class RestClient {
      * @param uri Base URI of the remote REST service
      */
     public RestClient(HttpClient httpclient, URI uri) {
-        this(httpclient, null, uri);
+        this(httpclient, Locale.getDefault(), null, uri);
+    }
+
+    /**
+     * Creates a REST client instance with a URI.
+     *
+     * @param httpclient Underlying HTTP client to use
+     * @param uri Base URI of the remote REST service
+     */
+    public RestClient(HttpClient httpclient, Locale serverLocale, URI uri) {
+        this(httpclient, serverLocale, null, uri);
     }
 
     /**
@@ -76,8 +90,9 @@ public class RestClient {
      * @param creds Credentials to send with each request
      * @param uri Base URI of the remote REST service
      */
-    public RestClient(HttpClient httpclient, ICredentials creds, URI uri) {
+    public RestClient(HttpClient httpclient, Locale serverLocale, ICredentials creds, URI uri) {
         this.httpClient = httpclient;
+        this.serverLocale = serverLocale;
         this.creds = creds;
         this.uri = uri;
     }
@@ -117,49 +132,68 @@ public class RestClient {
         return ub.build();
     }
 
-    private JSON request(HttpRequestBase req) throws RestException, IOException {
-        req.addHeader("Accept", "application/json");
+    private JSON request(HttpRequestBase request) throws RestException, IOException {
+        request.addHeader("Accept", CONTENT_TYPE_JSON);
 
-        if (creds != null)
-            creds.authenticate(req);
+        updateCredentials(request);
 
-        HttpResponse resp = httpClient.execute(req);
-        HttpEntity ent = resp.getEntity();
+        HttpResponse response = httpClient.execute(request);
+        HttpEntity responseEntity = response.getEntity();
         StringBuilder result = new StringBuilder();
-
-        if (ent != null) {
-            String encoding = null;
-            if (ent.getContentEncoding() != null) {
-            	encoding = ent.getContentEncoding().getValue();
-            }
-            
+        if (responseEntity != null) {
+            String encoding = getEncodingFromEntity(responseEntity);
             if (encoding == null) {
-    	        Header contentTypeHeader = resp.getFirstHeader("Content-Type");
-    	        HeaderElement[] contentTypeElements = contentTypeHeader.getElements();
-    	        for (HeaderElement he : contentTypeElements) {
-    	        	NameValuePair nvp = he.getParameterByName("charset");
-    	        	if (nvp != null) {
-    	        		encoding = nvp.getValue();
-    	        	}
-    	        }
+                encoding = getEncodingFromHeader(response);
             }
-            
-            InputStreamReader isr =  encoding != null ?
-                new InputStreamReader(ent.getContent(), encoding) :
-                new InputStreamReader(ent.getContent());
+            InputStreamReader isr = getEntityContentStream(responseEntity, encoding);
             BufferedReader br = new BufferedReader(isr);
-            String line = "";
-
-            while ((line = br.readLine()) != null)
+            String line;
+            while ((line = br.readLine()) != null) {
                 result.append(line);
+            }
         }
 
-        StatusLine sl = resp.getStatusLine();
+        StatusLine statusLine = response.getStatusLine();
+        if (statusLine.getStatusCode() >= 300) {
+            request.releaseConnection();
+            throw new RestException(statusLine.getReasonPhrase(), statusLine.getStatusCode(), result.toString());
+        }
 
-        if (sl.getStatusCode() >= 300)
-            throw new RestException(sl.getReasonPhrase(), sl.getStatusCode(), result.toString());
-
+        request.releaseConnection();
         return result.length() > 0 ? JSONSerializer.toJSON(result.toString()): null;
+    }
+
+    private InputStreamReader getEntityContentStream(HttpEntity responseEntity, String encoding) throws IOException {
+        if (encoding == null) {
+            return new InputStreamReader(responseEntity.getContent());
+        }
+        return new InputStreamReader(responseEntity.getContent(), encoding);
+    }
+
+    private String getEncodingFromHeader(HttpResponse resp) {
+        Header contentTypeHeader = resp.getFirstHeader(HEADER_CONTENT_TYPE);
+        HeaderElement[] contentTypeElements = contentTypeHeader.getElements();
+        for (HeaderElement he : contentTypeElements) {
+            NameValuePair nvp = he.getParameterByName("charset");
+            if (nvp != null) {
+                return nvp.getValue();
+            }
+        }
+        return null;
+    }
+
+    private String getEncodingFromEntity(HttpEntity ent) {
+        if (ent.getContentEncoding() != null) {
+            return ent.getContentEncoding().getValue();
+        }
+        return null;
+    }
+
+    private void updateCredentials(HttpRequestBase req) {
+        if (creds == null) {
+            return;
+        }
+        creds.authenticate(req);
     }
 
     private JSON request(HttpEntityEnclosingRequestBase req, String payload)
@@ -170,12 +204,12 @@ public class RestClient {
 
             try {
                 ent = new StringEntity(payload, "UTF-8");
-                ent.setContentType("application/json");
+                ent.setContentType(CONTENT_TYPE_JSON);
             } catch (UnsupportedEncodingException ex) {
                 /* utf-8 should always be supported... */
             }
 
-            req.addHeader("Content-Type", "application/json");
+            req.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
             req.setEntity(ent);
         }
 
@@ -405,6 +439,10 @@ public class RestClient {
      */
     public HttpClient getHttpClient(){
         return this.httpClient;
+    }
+
+    public Locale getServerLocale() {
+        return serverLocale;
     }
 }
 
